@@ -1,0 +1,65 @@
+global:
+  storageClass: "local-path"
+
+postgres:
+  image: "pgvector/pgvector:pg16"
+  replicas: 1
+  port: 5432
+  dbName: "pkms"
+  user: "pkms"
+  password: "pkms_password"
+  storage: 10Gi
+
+minio:
+  image: "cleanstart/minio:latest"
+  imagePullPolicy: "IfNotPresent"
+  replicas: 1
+  port: 9000
+  consolePort: 9001
+  rootUser: "minioadmin"
+  rootPassword: "minioadmin_password"
+  storage: 20Gi
+
+rabbitmq:
+  image: "rabbitmq:3.13-management"
+  replicas: 1
+  port: 5672
+  mgmtPort: 15672
+  user: "guest"
+  password: "guest_password"
+  storage: 5Gi
+
+tei:
+  image: "ghcr.io/huggingface/text-embeddings-inference:cpu-1.6"
+  imagePullPolicy: "IfNotPresent"
+  replicas: 1
+  port: 80
+  modelId: "BAAI/bge-small-en-v1.5"
+
+backend:
+  image: "pkms-backend:latest"
+  imagePullPolicy: "IfNotPresent"
+  replicas: 1
+  port: 8000
+
+worker:
+  image: "pkms-worker:latest"
+  imagePullPolicy: "IfNotPresent"
+  replicas: 1
+
+frontend:
+  image: "pkms-frontend:latest"
+  imagePullPolicy: "IfNotPresent"
+  replicas: 1
+  port: 3000
+
+keda:
+  enabled: true
+  minReplicaCount: 0
+  maxReplicaCount: 10
+  queueName: "ingestion_tasks"
+  queueLength: 5
+
+ingress:
+  enabled: true
+  host: "pkms.local"

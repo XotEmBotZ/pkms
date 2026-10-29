@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-backend
+  labels:
+    app: {{ .Release.Name }}-backend
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-backend
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-backend
+    spec:
+      containers:
+        - name: backend
+          image: {{ .Values.backend.image }}
+          imagePullPolicy: {{ .Values.backend.imagePullPolicy | default "IfNotPresent" }}
+          ports:
+            - containerPort: {{ .Values.backend.port }}
+              name: http
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          env:
+            - name: POSTGRES_HOST
+              value: {{ .Release.Name }}-postgres
+            - name: POSTGRES_PORT
+              value: "{{ .Values.postgres.port }}"
+            - name: POSTGRES_DB
+              value: {{ .Values.postgres.dbName }}
+            - name: POSTGRES_USER
+              value: {{ .Values.postgres.user }}
+            - name: POSTGRES_PASSWORD
+              value: {{ .Values.postgres.password }}
+            - name: MINIO_ENDPOINT
+              value: "{{ .Release.Name }}-minio:{{ .Values.minio.port }}"
+            - name: MINIO_ROOT_USER
+              value: {{ .Values.minio.rootUser }}
+            - name: MINIO_ROOT_PASSWORD
+              value: {{ .Values.minio.rootPassword }}
+            - name: RABBITMQ_HOST
+              value: {{ .Release.Name }}-rabbitmq
+            - name: RABBITMQ_PORT
+              value: "{{ .Values.rabbitmq.port }}"
+            - name: RABBITMQ_USER
+              value: {{ .Values.rabbitmq.user }}
+            - name: RABBITMQ_PASSWORD
+              value: {{ .Values.rabbitmq.password }}
+            - name: TEI_ENDPOINT
+              value: "http://{{ .Release.Name }}-tei:{{ .Values.tei.port }}"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-backend
+  labels:
+    app: {{ .Release.Name }}-backend
+spec:
+  ports:
+    - port: {{ .Values.backend.port }}
+      targetPort: {{ .Values.backend.port }}
+      name: http
+  selector:
+    app: {{ .Release.Name }}-backend

@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-tei
+  labels:
+    app: {{ .Release.Name }}-tei
+spec:
+  replicas: {{ .Values.tei.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-tei
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-tei
+    spec:
+      containers:
+        - name: tei
+          image: {{ .Values.tei.image }}
+          imagePullPolicy: {{ .Values.tei.imagePullPolicy | default "IfNotPresent" }}
+          args:
+            - --model-id
+            - {{ .Values.tei.modelId }}
+            - --port
+            - "{{ .Values.tei.port }}"
+          ports:
+            - containerPort: {{ .Values.tei.port }}
+              name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-tei
+  labels:
+    app: {{ .Release.Name }}-tei
+spec:
+  ports:
+    - port: {{ .Values.tei.port }}
+      targetPort: {{ .Values.tei.port }}
+      name: http
+  selector:
+    app: {{ .Release.Name }}-tei

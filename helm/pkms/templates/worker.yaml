@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-worker
+  labels:
+    app: {{ .Release.Name }}-worker
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-worker
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-worker
+    spec:
+      containers:
+        - name: worker
+          image: {{ .Values.worker.image }}
+          imagePullPolicy: {{ .Values.worker.imagePullPolicy | default "IfNotPresent" }}
+          env:
+            - name: POSTGRES_HOST
+              value: {{ .Release.Name }}-postgres
+            - name: POSTGRES_PORT
+              value: "{{ .Values.postgres.port }}"
+            - name: POSTGRES_DB
+              value: {{ .Values.postgres.dbName }}
+            - name: POSTGRES_USER
+              value: {{ .Values.postgres.user }}
+            - name: POSTGRES_PASSWORD
+              value: {{ .Values.postgres.password }}
+            - name: MINIO_ENDPOINT
+              value: "{{ .Release.Name }}-minio:{{ .Values.minio.port }}"
+            - name: MINIO_ROOT_USER
+              value: {{ .Values.minio.rootUser }}
+            - name: MINIO_ROOT_PASSWORD
+              value: {{ .Values.minio.rootPassword }}
+            - name: RABBITMQ_HOST
+              value: {{ .Release.Name }}-rabbitmq
+            - name: RABBITMQ_PORT
+              value: "{{ .Values.rabbitmq.port }}"
+            - name: RABBITMQ_USER
+              value: {{ .Values.rabbitmq.user }}
+            - name: RABBITMQ_PASSWORD
+              value: {{ .Values.rabbitmq.password }}
+            - name: TEI_ENDPOINT
+              value: "http://{{ .Release.Name }}-tei:{{ .Values.tei.port }}"
+{{- if .Values.keda.enabled }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ .Release.Name }}-worker-scaledobject
+  labels:
+    app: {{ .Release.Name }}-worker
+spec:
+  scaleTargetRef:
+    name: {{ .Release.Name }}-worker
+  minReplicaCount: {{ .Values.keda.minReplicaCount }}
+  maxReplicaCount: {{ .Values.keda.maxReplicaCount }}
+  triggers:
+    - type: rabbitmq
+      metadata:
+        queueName: {{ .Values.keda.queueName }}
+        mode: QueueLength
+        value: "{{ .Values.keda.queueLength }}"
+        host: "amqp://{{ .Values.rabbitmq.user }}:{{ .Values.rabbitmq.password }}@{{ .Release.Name }}-rabbitmq:{{ .Values.rabbitmq.port }}/%2F"
+{{- end }}

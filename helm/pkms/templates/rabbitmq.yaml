@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-rabbitmq
+  labels:
+    app: {{ .Release.Name }}-rabbitmq
+spec:
+  serviceName: {{ .Release.Name }}-rabbitmq
+  replicas: {{ .Values.rabbitmq.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-rabbitmq
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: {{ .Values.rabbitmq.image }}
+          ports:
+            - containerPort: {{ .Values.rabbitmq.port }}
+              name: amqp
+            - containerPort: {{ .Values.rabbitmq.mgmtPort }}
+              name: management
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              value: {{ .Values.rabbitmq.user }}
+            - name: RABBITMQ_DEFAULT_PASS
+              value: {{ .Values.rabbitmq.password }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/rabbitmq
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: {{ .Values.global.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.rabbitmq.storage }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-rabbitmq
+  labels:
+    app: {{ .Release.Name }}-rabbitmq
+spec:
+  ports:
+    - port: {{ .Values.rabbitmq.port }}
+      targetPort: {{ .Values.rabbitmq.port }}
+      name: amqp
+    - port: {{ .Values.rabbitmq.mgmtPort }}
+      targetPort: {{ .Values.rabbitmq.mgmtPort }}
+      name: management
+  selector:
+    app: {{ .Release.Name }}-rabbitmq

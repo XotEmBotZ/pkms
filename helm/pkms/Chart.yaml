@@ -1,0 +1,6 @@
+apiVersion: v2
+name: pkms
+description: PKMS Helm Chart for Dual-Surface Gateway, Ingestion Pipeline, and Storage Stack
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
